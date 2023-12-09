@@ -6,6 +6,7 @@ import reportWebVitals from "./reportWebVitals";
 import { ChainId, ThirdwebProvider } from "@thirdweb-dev/react";
 import { StateContextProvider } from "./context";
 import { HuddleProvider, HuddleClient } from "@huddle01/react";
+import { MetaMaskUIProvider } from "@metamask/sdk-react-ui";
 const PROJECT_ID = "971ZK9nBUG_gduwudbicyZg3YMiY85_1";
 
 const huddleClient = new HuddleClient({
@@ -19,13 +20,21 @@ const huddleClient = new HuddleClient({
 console.log("chainId", ChainId);
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <ThirdwebProvider desiredChainId={ChainId.Mumbai}>
-    <HuddleProvider key="huddle01-provider" client={huddleClient}>
-      <StateContextProvider>
-        <App />
-      </StateContextProvider>
-    </HuddleProvider>
-  </ThirdwebProvider>
+  <MetaMaskUIProvider
+    sdkOptions={{
+      dappMetadata: {
+        name: "Demo UI React App",
+      },
+    }}
+  >
+    <ThirdwebProvider desiredChainId={ChainId.Mumbai}>
+      <HuddleProvider key="huddle01-provider" client={huddleClient}>
+        <StateContextProvider>
+          <App />
+        </StateContextProvider>
+      </HuddleProvider>
+    </ThirdwebProvider>
+  </MetaMaskUIProvider>
 );
 
 // If you want to start measuring performance in your app, pass a function

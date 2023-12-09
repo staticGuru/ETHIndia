@@ -7,6 +7,11 @@ import { useLocalVideo, useLocalAudio } from "@huddle01/react/hooks";
 import { useEffect, useRef } from "react";
 import { AccessToken, Role } from "@huddle01/server-sdk/auth";
 import { Recorder } from "@huddle01/server-sdk/recorder";
+import LandingSections from "./components/landingSections";
+import { MetaMaskButton } from "@metamask/sdk-react-ui";
+import { ChainId } from "@thirdweb-dev/react";
+
+// import * as faceapi from "face-api.js";
 
 function App() {
   const { address, contract, connect } = useStateContext();
@@ -77,7 +82,8 @@ function App() {
       options: {
         metadata: {
           // you can add any custom attributes here which you want to associate with the user
-          walletAddress: "axit.eth",
+          // walletAddress: "axit.eth",
+          platform: "recording",
         },
       },
     });
@@ -87,30 +93,28 @@ function App() {
       token,
     });
     await enableVideo();
-
   }
 
   async function stopVideoProcessing() {
     await disableVideo();
-  
   }
 
-  async function startRecording(){
+  async function startRecording() {
     const updatedGetToken = new AccessToken({
       apiKey,
       roomId: ROOM_ID,
       role: Role.BOT,
       permissions: {
         admin: true,
-       
+
         canRecvData: true,
         canSendData: true,
       },
       options: {
         metadata: {
           // you can add any custom attributes here which you want to associate with the user
-          // walletAddress: "axit.eth",
-          platform: "recording",
+          walletAddress: "axit.eth",
+          // platform: "recording",
         },
       },
     });
@@ -120,49 +124,124 @@ function App() {
       roomId: ROOM_ID,
       token: updatedToken,
     });
+    // await Promise.all([
+    //   faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+    //   faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+    //   faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+    //   faceapi.nets.faceExpressionNet.loadFromUri("/models"),
+    // ]).then((e) =>{
+    //   console.log("e",e)
+    //   return recorder.startRecording({
+    //     roomId: ROOM_ID,
+    //     token: updatedToken,
+    //   })
+    // });
   }
-
-  async function stopRecording(){
+  async function fetchRecording() {
+    const data = await fetch("https://api.huddle01.com/api/v1/get-recordings", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+    })
+      .then((response) => response.json())
+      .then(({ recordings }) => console.log(recordings));
+    // .then(text => console.log(text))
+    console.log("lkjflskjfklsdf", data);
+  }
+  async function stopRecording() {
     await recorder.stop({
       roomId: ROOM_ID,
     });
+    await stopVideoProcessing();
+    await fetchRecording();
   }
-  // stream?.getVideoTracks((e)=>console.log("eventfetch",e))
+
+  async function getFeesHistory(){
+  const chainId=ChainId.Mainnet;
+  const GASAPI_API_KEY="7f9f4e5c50f945be9686b5792ee25190"
+  const GAS_API_SECRET="cN0TAJQeg8GFQnXMkXd0OK+OSFxIfi3KjPUDbF5OYuTSk9uZ1jOYjA"
+  const Auth = Buffer.from(
+    GASAPI_API_KEY + ":" + GAS_API_SECRET,
+  ).toString("base64");
+    const responseDAta= await fetch(`https://gas.staging.infura.org/networks/${chainId}/baseFeeHistory`, {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${Auth}`,
+
+      },
+    })
+      .then((response) => response.json())
+      .then(({ recordings }) => console.log(recordings));
+      console.log("responseDAta",responseDAta)
+  }
+
   return (
-    <div className="App">
-      <button onClick={connect}>Connect Wallet</button>
-      Guruvignesh
-      <button onClick={async () => await startVideoProcessing()}>
-        Fetch and Produce Video Stream
-      </button>
-      <button onClick={async () => await stopVideoProcessing()}>
-        stop video
-      </button>
-      <button onClick={async () => await startRecording()}>
-        start recording
-      </button>
-      <button onClick={async () => await stopRecording()}>
-        stop recording
-      </button>
-      {/* <VideoRecoder /> */}
-      {/* <button onClick={() => joinRoom(ROOM_ID)}>Join Room</button>
+    <>
+      <div className="App bg-gray-200">
+        <div className="flex mx-auto justify-between p-3">
+          <div className="text-base font-bold ">Video Renderer</div>
+          <div>
+            <button type="button" onClick={async()=>await getFeesHistory()}>Get fees</button>
+          {address ? (
+            <div className="p-2 bg-blue-300 rounded-lg text-red-600 font-bold text-sm">{address}</div>
+          ) : (
+            <MetaMaskButton theme={"light"} color="white"></MetaMaskButton>
+
+          )}
+          </div>
+        </div>
+
+        {/* <VideoRecoder /> */}
+        {/* <button onClick={() => joinRoom(ROOM_ID)}>Join Room</button>
       <button onClick={() => leaveRoom(ROOM_ID)}>Leave Room</button>
   
       <button 
           onClick={() => fetchStream({ mediaDeviceKind: 'cam' })} >
           Fetch Cam Stream
         </button> */}
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        {isVideoOn && (
-          <video
-            ref={videoRef}
-            className="w-1/2 mx-auto border-2 rounded-xl border-blue-400"
-            autoPlay
-            muted
-          />
-        )}
+        <div className="h-screen">
+          {isVideoOn ? (
+            <video
+              ref={videoRef}
+              className="w-3/4 mx-auto mt-10 h-full border-2 rounded-xl border-gray-300 bg-gray-300"
+              autoPlay
+              muted
+            />
+          ) : (
+            <div className="w-3/4 mx-auto mt-10 h-full border-2 rounded-xl border-gray-400 bg-gray-500" />
+          )}
+        </div>
+        <div className="py-4 flex gap-3 justify-center">
+          <button
+            className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            onClick={async () => await startVideoProcessing()}
+          >
+            Enable camera
+          </button>
+          <button
+            className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            onClick={async () => await stopVideoProcessing()}
+          >
+            Disable camera
+          </button>
+          <button
+            className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            onClick={async () => await startRecording()}
+          >
+            start recording
+          </button>
+          <button
+            className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            onClick={async () => await stopRecording()}
+          >
+            stop recording
+          </button>
+        </div>
       </div>
-    </div>
+      {/* <LandingSections/> */}
+    </>
   );
 }
 
